@@ -103,6 +103,13 @@ def _append_log(entry: dict) -> None:
         temp_file.replace(LOG_FILE)
 
 
+def _print_request_to_console(entry: dict) -> None:
+    print("\n" + "=" * 80)
+    print("[webhook] nova requisição recebida")
+    print(json.dumps(entry, ensure_ascii=False, indent=2, default=str))
+    print("=" * 80 + "\n", flush=True)
+
+
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
 def generic_webhook(path: str):
@@ -113,11 +120,21 @@ def generic_webhook(path: str):
         "request_id": request_id,
         "received_at": datetime.now(timezone.utc).isoformat(),
         "method": request.method,
+        "scheme": request.scheme,
+        "host": request.host,
+        "url": request.url,
+        "base_url": request.base_url,
         "path": "/" + path if path else "/",
         "full_path": request.full_path.rstrip("?"),
+        "query_string": request.query_string.decode("utf-8", errors="replace"),
         "query_params": _normalize_query_params(),
         "headers": dict(request.headers),
         "content_type": request.content_type,
+        "content_length": request.content_length,
+        "mimetype": request.mimetype,
+        "remote_port": request.environ.get("REMOTE_PORT"),
+        "server_protocol": request.environ.get("SERVER_PROTOCOL"),
+        "is_secure": request.is_secure,
         "remote_addr": request.headers.get("X-Forwarded-For", request.remote_addr),
         "payload_type": payload_type,
         "payload": payload,
@@ -125,6 +142,7 @@ def generic_webhook(path: str):
         "payload_truncated": payload_truncated,
     }
 
+    _print_request_to_console(log_entry)
     _append_log(log_entry)
 
     return (
