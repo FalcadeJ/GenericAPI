@@ -30,6 +30,14 @@ def _normalize_query_params() -> dict:
     return params
 
 
+def _get_projuris_signature() -> str | None:
+    return (
+        request.headers.get("X_Projuris_Signature")
+        or request.headers.get("X-Projuris-Signature")
+        or request.environ.get("HTTP_X_PROJURIS_SIGNATURE")
+    )
+
+
 def _extract_body() -> tuple[str, object, str | None, bool]:
     raw = request.get_data(cache=True) or b""
     payload_truncated = False
@@ -136,6 +144,7 @@ def generic_webhook(path: str):
         "server_protocol": request.environ.get("SERVER_PROTOCOL"),
         "is_secure": request.is_secure,
         "remote_addr": request.headers.get("X-Forwarded-For", request.remote_addr),
+        "projuris_signature": _get_projuris_signature(),
         "payload_type": payload_type,
         "payload": payload,
         "raw_body": raw_body,
